@@ -114,6 +114,7 @@ class TimeData:
 
         return dfy, colors
 
+
     def draw_plot(self, level:str, work:bool):
         if level == "week":
             dfy, colors = self.get_by_week(work)
@@ -122,11 +123,14 @@ class TimeData:
         else:
             raise Exception
         
-        dfy.plot(kind='area', stacked=False, figsize=(20, 10), color=colors, linewidth=0)
+        ax = dfy.plot(kind='area', stacked=False, figsize=(20, 10), color=colors, linewidth=0)
         plt.title(self.year)
         plt.ylabel('hours')
         plt.xlabel('week')
         plt.show()
+        fig = ax.get_figure()
+        return fig
+
 
     def draw_linegraph(self):
         alt.Chart(self.df_groupped).mark_bar().encode(
@@ -281,3 +285,5 @@ class TimeData:
 
         # Показываем график
         plt.show()
+
+        return fig

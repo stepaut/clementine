@@ -81,13 +81,32 @@ def upload_files():
                 color_path = os.path.join(UPLOAD_FOLDER, 'color.csv')
                 color_file.save(color_path)
                 
-                # Initialize TimeData with both files
-                time_data = TimeData(time_path, color_path)
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Time data uploaded successfully',
-                    'redirect': url_for('time_dashboard')
-                })
+                try:
+                    # Read color dictionary
+                    color_df = pd.read_csv(color_path)
+                    
+                    # Check if required columns exist
+                    required_columns = ['Activity', 'Color']
+                    missing_columns = [col for col in required_columns if col not in color_df.columns]
+                    
+                    if missing_columns:
+                        return jsonify({
+                            'status': 'error',
+                            'message': f'Color dictionary file must contain columns: {", ".join(missing_columns)}'
+                        }), 400
+                    
+                    # Initialize TimeData with path and color dictionary
+                    time_data = TimeData(time_path, color_path)
+                    return jsonify({
+                        'status': 'success',
+                        'message': 'Time data uploaded successfully',
+                        'redirect': url_for('time_dashboard')
+                    })
+                except Exception as e:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Error processing color dictionary: {str(e)}'
+                    }), 400
             elif time_file.filename or color_file.filename:
                 return jsonify({
                     'status': 'error',
@@ -134,7 +153,7 @@ def mood_dashboard():
         calendar_img = get_plot_as_base64(calendar_fig)
         
         # Generate dots plot
-        dots_fig = mood_data.gen_dots()
+        dots_fig = mood_data.gen_dots(7)
         dots_img = get_plot_as_base64(dots_fig)
         
         return render_template('mood.html', 
@@ -149,7 +168,23 @@ def time_dashboard():
     """Time tracking dashboard"""
     if time_data is None:
         return redirect(url_for('index'))
-    return render_template('time.html')
+    
+    try:      
+        # linegraph = time_data.draw_linegraph()
+        # linegraph_img = get_plot_as_base64(linegraph)
+
+        daily = time_data.plot_daily()
+        daily_img = get_plot_as_base64(daily)
+
+        plot1 = time_data.draw_plot("week", False)
+        plot1_img = get_plot_as_base64(plot1)
+        
+        return render_template('time.html',
+                               pie_img=daily_img,
+                               bar_img=daily_img,
+                               heatmap_img=plot1_img)
+    except Exception as e:
+        return f"Ошибка при генерации графиков: {str(e)}", 500
 
 @app.route('/daily')
 def daily_dashboard():
