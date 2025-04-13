@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Временные данные{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Распределение времени</h5>
+                <div id="time-distribution-chart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ежедневная активность</h5>
+                <div id="daily-activity-chart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Статистика</h5>
+                <div id="time-stats">
+                    <p>Всего времени: <span id="total-time"></span></p>
+                    <p>Среднее время в день: <span id="avg-time"></span></p>
+                    <p>Наиболее активные часы: <span id="peak-hours"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Загрузка временных данных
+    fetch('/api/time')
+        .then(response => response.json())
+        .then(data => {
+            // График распределения времени
+            const distributionLayout = {
+                title: 'Распределение времени по категориям',
+                showlegend: true
+            };
+            Plotly.newPlot('time-distribution-chart', [{
+                labels: data.categories,
+                values: data.durations,
+                type: 'pie'
+            }], distributionLayout);
+
+            // График ежедневной активности
+            const activityLayout = {
+                title: 'Ежедневная активность',
+                xaxis: { title: 'Время суток' },
+                yaxis: { title: 'Активность' }
+            };
+            Plotly.newPlot('daily-activity-chart', [{
+                x: data.hours,
+                y: data.activity,
+                type: 'bar'
+            }], activityLayout);
+
+            // Статистика
+            document.getElementById('total-time').textContent = data.stats.total_time;
+            document.getElementById('avg-time').textContent = data.stats.avg_time;
+            document.getElementById('peak-hours').textContent = data.stats.peak_hours;
+        });
+</script>
+{% endblock %} 

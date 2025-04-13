@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Загрузка данных{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Data Upload</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3>Mood Data</h3>
+            <form action="{{ url_for('upload_files') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="form-group">
+                    <label for="mood_file">Upload Daylio Export (.csv):</label>
+                    <input type="file" class="form-control" id="mood_file" name="mood_file" accept=".csv">
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Upload Mood Data</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3>Time Tracking Data</h3>
+            <form action="{{ url_for('upload_files') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="time_file">Time Data File (.csv):</label>
+                            <input type="file" class="form-control" id="time_file" name="time_file" accept=".csv">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="color_file">Color Dictionary (.csv):</label>
+                            <input type="file" class="form-control" id="color_file" name="color_file" accept=".csv">
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted d-block mb-3">Note: Both Time Data and Color Dictionary files must be uploaded together.</small>
+                <button type="submit" class="btn btn-primary">Upload Time Data</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3>Daily Data</h3>
+            <form action="{{ url_for('upload_files') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="form-group">
+                    <label for="daily_file">Daily Data File (.csv):</label>
+                    <input type="file" class="form-control" id="daily_file" name="daily_file" accept=".csv">
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Upload Daily Data</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="analysis-results" class="row mt-4" style="display: none;">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Данные настроения</h5>
+                <p class="card-text">Анализ вашего настроения и эмоций.</p>
+                <a href="/mood" class="btn btn-primary">Просмотреть анализ</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Временные данные</h5>
+                <p class="card-text">Анализ распределения времени.</p>
+                <a href="/time" class="btn btn-primary">Просмотреть анализ</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ежедневные данные</h5>
+                <p class="card-text">Анализ ежедневной активности.</p>
+                <a href="/daily" class="btn btn-primary">Просмотреть анализ</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.upload-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const timeFile = this.querySelector('[name="time_file"]');
+        const colorFile = this.querySelector('[name="color_file"]');
+        
+        // Validate time data uploads
+        if (timeFile && colorFile) {
+            if ((timeFile.files.length > 0 && colorFile.files.length === 0) || 
+                (timeFile.files.length === 0 && colorFile.files.length > 0)) {
+                alert('Time Data and Color Dictionary files must be uploaded together.');
+                return;
+            }
+        }
+        
+        // Submit form data
+        const formData = new FormData(this);
+        fetch('{{ url_for("upload_files") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error uploading file: ' + error.message);
+        });
+    });
+});
+</script>
+{% endblock %} 

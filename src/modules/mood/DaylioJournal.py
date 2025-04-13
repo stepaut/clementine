@@ -6,6 +6,8 @@ from wordcloud import WordCloud, STOPWORDS
 import matplotlib as mpl
 import calmap
 from matplotlib import colors
+import string
+from datetime import datetime
 
 # Daylio moods ordered from worst to best
 ORDERED_MOODS = ['awful', 'bad', 'meh', 'good', 'great']
@@ -25,14 +27,15 @@ class DaylioJournal:
         self.data, self.activities = self.clean_df()
 
     def clean_df(self):
-        df = self.raw_data
+        df = self.raw_data.copy()  # Создаем копию DataFrame
         df = df.iloc[::-1]
         ordered_moods = self.ordered_moods
         scale = self.scale
 
-        df['mood_num'] = df['mood'].replace(ordered_moods, range(len(ordered_moods)))
+        # Используем .loc для безопасного присваивания
+        df.loc[:, 'mood_num'] = df['mood'].replace(ordered_moods, range(len(ordered_moods)))
+        df.loc[:, 'full_date'] = pd.to_datetime(df['full_date'])
 
-        df.full_date = pd.to_datetime(df.full_date)
         df_with_one_hot_encoding, all_activities = self.convert_activities_to_categorical(df)
         df_with_mood_scores = self.mood_to_score(df_with_one_hot_encoding)
 
@@ -41,26 +44,24 @@ class DaylioJournal:
         return (df_with_mood_scores, all_activities)
 
     def gen_hist(self):
-        moods = self.data[['mood']]
-
+        """Generate histogram of mood distribution"""
+        fig, ax = plt.subplots(figsize=(10, 6))
         sns.set()
-        sns.countplot(data=moods, x="mood", order=ORDERED_MOODS, color='gray')
-        plt.title("mood distribution")
-
-        return (plt)
+        sns.countplot(data=self.data.reset_index(), x="mood", order=self.ordered_moods, color='gray', ax=ax)
+        ax.set_title("Распределение настроения")
+        return fig
     
     def gen_plot(self, year):
+        """Generate calendar plot for a specific year"""
+        fig, ax = plt.subplots(figsize=(20, 10))
         colors = ["red", "orange", "yellow", "lawngreen", "green"]
         palette = mpl.colors.LinearSegmentedColormap.from_list("palette", colors, len(colors))
-        df = self.data
-        plt.figure(figsize=(20, 10))
-        calmap.yearplot(df['mood_num'], year=year, cmap=palette, daylabels='MTWTFSS', dayticks=[0, 2, 4, 6],
-                linewidth=2.5)
+        calmap.yearplot(self.data['mood_num'], year=year, cmap=palette, daylabels='MTWTFSS', 
+                       dayticks=[0, 2, 4, 6], linewidth=2.5, ax=ax)
+        return fig
 
     def gen_dots(self, matrix_length=30):
-        '''
-        Generates a matrix dot plot visualization representing all my moods over time.
-        '''
+        """Generate matrix dot plot visualization"""
         df = self.data
 
         mood_categories = {}
@@ -85,17 +86,17 @@ class DaylioJournal:
 
         all_mood_array = np.array(all_mood_array)
 
-        plt.figure(figsize=(5, 5))
+        fig, ax = plt.subplots(figsize=(5, 5))
         colormap = colors.ListedColormap([
             "red", "orange", "yellow", "lawngreen",
             "green", "darkgrey"
         ])
-        plt.imshow(all_mood_array, cmap=colormap)
-        plt.axis('off')
-
-        return (plt)
+        ax.imshow(all_mood_array, cmap=colormap)
+        ax.axis('off')
+        return fig
 
     def gen_wordcloud_per_mood(self):
+        """Generate word clouds for each mood category"""
         all_words = ''
         stopwords = set(STOPWORDS)
 
@@ -120,44 +121,44 @@ class DaylioJournal:
                                 stopwords=stopwords,
                                 min_font_size=10,
                                 max_words=100).generate(words)
-            plt.figure(figsize=(8, 8), facecolor=None)
-            plt.imshow(wordcloud)
-            plt.axis("off")
+            fig, ax = plt.subplots(figsize=(8, 8))
+            ax.imshow(wordcloud)
+            ax.axis("off")
             plt.tight_layout(pad=0)
-            plt.savefig(mood + ".png")
-            wordcloud_dict[mood] = plt
+            wordcloud_dict[mood] = fig
 
-        return (wordcloud_dict)
+        return wordcloud_dict
 
     def gen_entries_over_time_hist(self):
-        df = self.data
-        df.full_date = pd.to_datetime(df.full_date).dt.to_period('M').dt.to_timestamp()
-        earliest_entry = min(df.full_date)
+        """Generate histogram of entries over time"""
+        df = self.data.copy()
+        df.index = pd.to_datetime(df.index).to_period('M').to_timestamp()
+        earliest_entry = min(df.index)
         start_year = earliest_entry.year
         start_month = earliest_entry.month
 
-        latest_entry = max(df.full_date)
+        latest_entry = max(df.index)
         end_year = latest_entry.year
         end_month = latest_entry.month
 
         all_months = [
-            date(m // 12, m % 12 + 1, 1)
+            datetime(m // 12, m % 12 + 1, 1)
             for m in range(start_year * 12 + start_month - 1, end_year * 12 + end_month)
         ]
 
         num_entries = []
 
         for month in all_months:
-            num_entries.append(len(df[df.full_date == month]))
+            num_entries.append(len(df[df.index == month]))
 
-        ax = plt.subplot(111)
+        fig, ax = plt.subplots(figsize=(10, 6))
         ax.bar(all_months, num_entries, width=25, color="darkorange")
         ax.xaxis_date()
-        plt.title("# journal entries written, by month")
-
-        return (plt)
+        ax.set_title("Количество записей по месяцам")
+        return fig
 
     def convert_activities_to_categorical(self, df):
+        """Convert activities to categorical variables"""
         all_activities = []
 
         for index, row in df.iterrows():
@@ -188,6 +189,7 @@ class DaylioJournal:
         return (full_df, all_activities)
 
     def mood_to_score(self, df):
+        """Convert mood categories to numerical scores"""
         original_metric = {}
         num = 1
         for mood in self.ordered_moods:
@@ -198,14 +200,10 @@ class DaylioJournal:
         old_max = max(original_metric.values())
 
         ordered_mood_scores = {}
-        for mood in original_metric.keys():
-            value = original_metric[mood]
-            weighted_score = self.scale / (old_max - old_min) * (value - old_max) + self.scale
-            ordered_mood_scores[mood] = weighted_score
+        for mood in self.ordered_moods:
+            ordered_mood_scores[mood] = original_metric[mood]
 
-        df['mood_score'] = df['mood'].map(ordered_mood_scores)
-
-        return (df)
+        return df
 
     def gen_mood_trend_line(self, window_size=30, year=None):
         '''
