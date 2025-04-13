@@ -191,7 +191,20 @@ def daily_dashboard():
     """Daily data dashboard"""
     if daily_data is None:
         return redirect(url_for('index'))
-    return render_template('daily.html')
+    
+    try:
+        # Generate all plots from DailyData
+        figs = daily_data.plot_all()
+        
+        # Convert all figures to base64 images
+        images = []
+        for fig in figs:
+            img = get_plot_as_base64(fig)
+            images.append(img)
+        
+        return render_template('daily.html', plot_images=images)
+    except Exception as e:
+        return f"Ошибка при генерации графиков: {str(e)}", 500
 
 @app.route('/api/mood')
 def mood_api():

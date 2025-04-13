@@ -48,7 +48,13 @@ class DailyData:
         ax = calmap.yearplot(self.df[col], cmap=cmap, daylabels='MTWTFSS', dayticks=[0, 2, 4, 6],
                             linewidth=2.5)
         plt.title(col, fontsize=36)
+        fig = ax.get_figure()
+        return fig
 
     def plot_all(self):
+        figs = []
         for col in self.df.columns:
-            self.plot(col)
+            fig = self.plot(col)
+            figs.append(fig)
+
+        return figs
