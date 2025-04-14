@@ -21,6 +21,8 @@ from modules.dailydata.DailyData import DailyData
 
 app = Flask(__name__)
 
+current_year = datetime.now().year
+
 # Initialize data handlers as None
 mood_data = None
 time_data = None
@@ -143,23 +145,16 @@ def mood_dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Generate histogram
-        hist_fig = mood_data.gen_hist()
-        hist_img = get_plot_as_base64(hist_fig)
-        
-        # Generate calendar plot
-        current_year = datetime.now().year
-        calendar_fig = mood_data.gen_plot(current_year)
-        calendar_img = get_plot_as_base64(calendar_fig)
-        
-        # Generate dots plot
-        dots_fig = mood_data.gen_dots(7)
-        dots_img = get_plot_as_base64(dots_fig)
-        
-        return render_template('mood.html', 
-                            hist_img=hist_img,
-                            calendar_img=calendar_img,
-                            dots_img=dots_img)
+        # Generate all plots
+        figs = mood_data.plot_all(current_year)
+
+        # Convert all figures to base64 images
+        images = []
+        for fig in figs:
+            img = get_plot_as_base64(fig)
+            images.append(img)
+
+        return render_template('daily.html', plot_images=images)
     except Exception as e:
         return f"Ошибка при генерации графиков: {str(e)}", 500
 

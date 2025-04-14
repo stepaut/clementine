@@ -6,26 +6,17 @@
 <div class="container mt-4">
     <h1>Mood Analysis Dashboard</h1>
     
+    {% for img in plot_images %}
     <div class="row mt-4">
         <div class="col-md-12">
-            <h3>Mood Distribution</h3>
-            <img src="data:image/png;base64,{{ hist_img }}" class="img-fluid" alt="Mood Distribution">
+            <div class="card">
+                <div class="card-body">
+                    <img src="data:image/png;base64,{{ img }}" class="img-fluid" alt="Mood Plot">
+                </div>
+            </div>
         </div>
     </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <h3>Mood Calendar</h3>
-            <img src="data:image/png;base64,{{ calendar_img }}" class="img-fluid" alt="Mood Calendar">
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <h3>Mood Dots</h3>
-            <img src="data:image/png;base64,{{ dots_img }}" class="img-fluid" alt="Mood Dots">
-        </div>
-    </div>
+    {% endfor %}
 </div>
 {% endblock %}
 

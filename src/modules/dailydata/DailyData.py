@@ -54,7 +54,6 @@ class DailyData:
     def plot_all(self):
         figs = []
         for col in self.df.columns:
-            fig = self.plot(col)
-            figs.append(fig)
+            figs.append(self.plot(col))
 
         return figs

@@ -22,38 +22,6 @@
 
 {% block extra_js %}
 <script>
-    // Загрузка ежедневных данных
-    fetch('/api/daily')
-        .then(response => response.json())
-        .then(data => {
-            // График ежедневной активности
-            const activityLayout = {
-                title: 'Ежедневная активность',
-                xaxis: { title: 'Дата' },
-                yaxis: { title: 'Уровень активности' }
-            };
-            Plotly.newPlot('daily-activity-chart', [{
-                x: data.dates,
-                y: data.activity_levels,
-                type: 'scatter',
-                mode: 'lines+markers'
-            }], activityLayout);
-
-            // График распределения активности
-            const distributionLayout = {
-                title: 'Распределение активности',
-                xaxis: { title: 'Уровень активности' },
-                yaxis: { title: 'Количество дней' }
-            };
-            Plotly.newPlot('activity-distribution-chart', [{
-                x: data.activity_levels,
-                type: 'histogram'
-            }], distributionLayout);
-
-            // Статистика
-            document.getElementById('avg-activity').textContent = data.stats.average.toFixed(2);
-            document.getElementById('peak-days').textContent = data.stats.peak_days.join(', ');
-            document.getElementById('activity-trend').textContent = data.stats.trend;
-        });
+    // Дополнительный JavaScript код для интерактивности (если потребуется)
 </script>
 {% endblock %} 
