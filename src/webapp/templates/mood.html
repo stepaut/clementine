@@ -6,18 +6,77 @@
 <div class="container mt-4">
     <h1>Mood Analysis Dashboard</h1>
     
-    {% for img in plot_images %}
+    <!-- Year Selection -->
     <div class="row mt-4">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-body">
-                    <img src="data:image/png;base64,{{ img }}" class="img-fluid" alt="Mood Plot">
+                    <h5 class="card-title">Select Year</h5>
+                    <div class="year-sliders">
+                        {% for year in years %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input year-radio" type="radio" name="year" id="year{{ year }}" value="{{ year }}" {% if loop.last %}checked{% endif %}>
+                            <label class="form-check-label" for="year{{ year }}">{{ year }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    {% endfor %}
+    
+    <!-- Plots Container -->
+    <div class="plots-container">
+        {% for year in years %}
+        <div class="year-plots" id="plots{{ year }}" {% if not loop.first %}style="display: none;"{% endif %}>
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h3>Mood Plot</h3>
+                    <img src="data:image/png;base64,{{ year_plots[year]['plot'] }}" class="img-fluid" alt="Mood Plot">
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h3>Mood Trend Line</h3>
+                    <img src="data:image/png;base64,{{ year_plots[year]['trend_line'] }}" class="img-fluid" alt="Mood Trend Line">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
+
+<script>
+document.querySelectorAll('.year-radio').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Hide all year plots
+        document.querySelectorAll('.year-plots').forEach(plot => {
+            plot.style.display = 'none';
+        });
+        
+        // Show selected year plots
+        const selectedYear = this.value;
+        document.getElementById(`plots${selectedYear}`).style.display = 'block';
+    });
+});
+</script>
+
+<style>
+.year-sliders {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.form-check-inline {
+    margin-right: 1rem;
+}
+
+.year-plots {
+    transition: opacity 0.3s ease-in-out;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}

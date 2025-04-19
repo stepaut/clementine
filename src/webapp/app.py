@@ -140,21 +140,29 @@ def upload_files():
 
 @app.route('/mood')
 def mood_dashboard():
-    """Mood data dashboard"""
+    """Mood tracking dashboard"""
     if mood_data is None:
         return redirect(url_for('index'))
     
     try:
-        # Generate all plots
-        figs = mood_data.plot_all(current_year)
+        # Get unique years from the data
+        years = sorted(mood_data.data.index.year.unique())
+        
+        # Generate plots for each year
+        year_plots = {}
+        for year in years:
+            plot = mood_data.gen_plot(year=year)
+            trend_line = mood_data.gen_mood_trend_line(year=year)
+            
+            plot_img = get_plot_as_base64(plot)
+            trend_line_img = get_plot_as_base64(trend_line)
 
-        # Convert all figures to base64 images
-        images = []
-        for fig in figs:
-            img = get_plot_as_base64(fig)
-            images.append(img)
-
-        return render_template('daily.html', plot_images=images)
+            year_plots[year] = {
+                'plot': plot_img,
+                'trend_line': trend_line_img,
+            }
+        
+        return render_template('mood.html', year_plots=year_plots, years=years)
     except Exception as e:
         return f"Ошибка при генерации графиков: {str(e)}", 500
 
@@ -200,57 +208,6 @@ def daily_dashboard():
         return render_template('daily.html', plot_images=images)
     except Exception as e:
         return f"Ошибка при генерации графиков: {str(e)}", 500
-
-@app.route('/api/mood')
-def mood_api():
-    """API endpoint for mood data"""
-    if mood_data is None:
-        return jsonify({'error': 'No mood data available'}), 400
-    
-    data = mood_data.data
-    return jsonify({
-        'dates': [format_date(d) for d in data.index],
-        'mood_levels': data['mood_num'].tolist(),
-        'stats': {
-            'average': float(data['mood_num'].mean()),
-            'median': float(data['mood_num'].median()),
-            'std': float(data['mood_num'].std())
-        }
-    })
-
-@app.route('/api/time')
-def time_api():
-    """API endpoint for time data"""
-    if time_data is None:
-        return jsonify({'error': 'No time data available'}), 400
-    data = time_data.get_data()
-    return jsonify({
-        'categories': data['categories'].tolist(),
-        'durations': data['durations'].tolist(),
-        'hours': data['hours'].tolist(),
-        'activity': data['activity'].tolist(),
-        'stats': {
-            'total_time': str(data['durations'].sum()),
-            'avg_time': str(data['durations'].mean()),
-            'peak_hours': data['hours'][data['activity'].argmax()]
-        }
-    })
-
-@app.route('/api/daily')
-def daily_api():
-    """API endpoint for daily data"""
-    if daily_data is None:
-        return jsonify({'error': 'No daily data available'}), 400
-    data = daily_data.get_data()
-    return jsonify({
-        'dates': [format_date(d) for d in data['dates']],
-        'activity_levels': data['activity_levels'].tolist(),
-        'stats': {
-            'average': float(data['activity_levels'].mean()),
-            'peak_days': [format_date(d) for d in data['dates'][data['activity_levels'].nlargest(3).index]],
-            'trend': 'растущий' if data['activity_levels'].iloc[-1] > data['activity_levels'].iloc[0] else 'падающий'
-        }
-    })
 
 if __name__ == '__main__':
     app.run(debug=True) 

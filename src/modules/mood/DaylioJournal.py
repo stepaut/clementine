@@ -311,13 +311,3 @@ class DaylioJournal:
         fig = ax.get_figure()
 
         return fig
-    
-    def plot_all(self, year = None):
-        figs = []
-
-        if year is not None:
-            figs.append(self.gen_plot(year=year))
-        
-        figs.append(self.gen_mood_trend_line(year=year))
-        
-        return figs
