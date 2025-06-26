@@ -287,3 +287,61 @@ class TimeData:
         plt.show()
 
         return fig
+
+    def generate_report(self, by='week', years=None, to_csv=None, to_excel=None, work=True):
+        """
+        Генерирует отчеты по неделям или месяцам для каждого года.
+        Возвращает словарь: {год: DataFrame}
+        by: 'week' или 'month'
+        years: список лет (по умолчанию все года в данных)
+        to_csv: путь к папке для сохранения csv (если None, не сохраняет)
+        to_excel: путь к файлу для сохранения excel (если None, не сохраняет)
+        work: учитывать ли Work-активности
+        """
+        df = self.df.copy()
+        df['Year'] = df['Start'].dt.year
+        all_years = sorted(df['Year'].unique())
+        if years is None:
+            years = all_years
+        reports = {}
+        excel_writer = None
+        if to_excel:
+            excel_writer = pd.ExcelWriter(to_excel, engine='xlsxwriter')
+        for year in years:
+            dfy = df[df['Year'] == year]
+            if by == 'week':
+                dfy['Period'] = dfy['Start'].dt.isocalendar().week
+                periods = range(1, 54)
+                period_name = 'week'
+            elif by == 'month':
+                dfy['Period'] = dfy['Start'].dt.month
+                periods = range(1, 13)
+                period_name = 'month'
+            else:
+                raise ValueError("by должен быть 'week' или 'month'")
+            # Группировка по типу
+            def get_type(activity):
+                if activity.startswith(':'):
+                    return activity.split(':')[1]
+                if ':' in activity:
+                    return activity.split(':', 1)[0]
+                return activity
+            dfy['Type'] = dfy['Activity'].apply(get_type)
+            types = sorted(dfy['Type'].unique())
+            data = []
+            for t in types:
+                row = []
+                for period in periods:
+                    mask = (dfy['Type'] == t) & (dfy['Period'] == period)
+                    total = dfy.loc[mask, 'Total'].sum() / 60  # часы
+                    row.append(total)
+                data.append(row)
+            report_df = pd.DataFrame(data, index=types, columns=[f'{period_name}_{p}' for p in periods])
+            reports[year] = report_df
+            if to_csv:
+                report_df.to_csv(f"{to_csv}/report_{by}_{year}.csv", encoding='utf-8')
+            if excel_writer:
+                report_df.to_excel(excel_writer, sheet_name=f'{by}_{year}')
+        if excel_writer:
+            excel_writer.save()
+        return reports

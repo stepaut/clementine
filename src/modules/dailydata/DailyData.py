@@ -21,8 +21,8 @@ mood_palette = mpl.colors.LinearSegmentedColormap.from_list(
     "mood_palette", mood, len(mood))
 
 maps = {
-    "Do": green_palette,
-    "Do2": yellow_palette3,
+    "Do": yellow_palette3,
+    "Do2": green_palette,
     "Mood": mood_palette,
 }
 

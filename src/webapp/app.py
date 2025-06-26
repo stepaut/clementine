@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, Response
 import sys
 import os
 import pandas as pd
@@ -153,13 +153,10 @@ def mood_dashboard():
         for year in years:
             plot = mood_data.gen_plot(year=year)
             trend_line = mood_data.gen_mood_trend_line(year=year)
-            
-            plot_img = get_plot_as_base64(plot)
-            trend_line_img = get_plot_as_base64(trend_line)
 
             year_plots[year] = {
-                'plot': plot_img,
-                'trend_line': trend_line_img,
+                'plot': get_plot_as_base64(plot),
+                'trend_line': get_plot_as_base64(trend_line),
             }
         
         return render_template('mood.html', year_plots=year_plots, years=years)
@@ -173,19 +170,15 @@ def time_dashboard():
         return redirect(url_for('index'))
     
     try:      
-        # linegraph = time_data.draw_linegraph()
-        # linegraph_img = get_plot_as_base64(linegraph)
-
+        
         daily = time_data.plot_daily()
-        daily_img = get_plot_as_base64(daily)
 
         plot1 = time_data.draw_plot("week", False)
-        plot1_img = get_plot_as_base64(plot1)
-        
+
         return render_template('time.html',
-                               pie_img=daily_img,
-                               bar_img=daily_img,
-                               heatmap_img=plot1_img)
+                               pie_img=get_plot_as_base64(daily),
+                               bar_img=get_plot_as_base64(daily),
+                               heatmap_img=get_plot_as_base64(plot1))
     except Exception as e:
         return f"Ошибка при генерации графиков: {str(e)}", 500
 
@@ -208,6 +201,30 @@ def daily_dashboard():
         return render_template('daily.html', plot_images=images)
     except Exception as e:
         return f"Ошибка при генерации графиков: {str(e)}", 500
+
+@app.route('/time/report')
+def time_report():
+    """Генерация и скачивание html-отчета по времени"""
+    if time_data is None:
+        return redirect(url_for('index'))
+    try:
+        # Генерируем отчеты по неделям и месяцам
+        week_reports = time_data.generate_report(by='week')
+        month_reports = time_data.generate_report(by='month')
+        html = '<html><head><meta charset="utf-8"><title>Time Report</title></head><body>'
+        html += '<h1>Time Report</h1>'
+        for year, df in week_reports.items():
+            html += f'<h2>Недели {year}</h2>'
+            html += df.T.to_html(float_format="{:.2f}".format, border=1)
+        for year, df in month_reports.items():
+            html += f'<h2>Месяцы {year}</h2>'
+            html += df.T.to_html(float_format="{:.2f}".format, border=1)
+        html += '</body></html>'
+        return Response(html, mimetype='text/html', headers={
+            'Content-Disposition': 'attachment;filename=time_report.html'
+        })
+    except Exception as e:
+        return f"Ошибка при генерации отчета: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(debug=True) 
