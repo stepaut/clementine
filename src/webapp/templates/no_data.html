@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Данные не найдены{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h1 class="card-title text-muted">📊</h1>
+                    <h2>Данные {{ data_type }} не найдены</h2>
+                    <p class="card-text">
+                        К сожалению, данные {{ data_type }} не были найдены в папке "Статистика".
+                    </p>
+                    <p class="card-text">
+                        Убедитесь, что:
+                    </p>
+                    <ul class="text-left">
+                        <li>В папке "Статистика" есть подпапки с годами (например, 2023, 2024)</li>
+                        <li>В папках годов есть соответствующие файлы данных</li>
+                        <li>Путь к папке "Статистика" правильно указан в файле config.py</li>
+                    </ul>
+                    <a href="/" class="btn btn-primary">Вернуться на главную</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

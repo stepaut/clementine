@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Data Dashboard{% endblock %}</title>
+    <title>{% block title %}Анализ данных{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
@@ -11,20 +11,23 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">Data Dashboard</a>
+            <a class="navbar-brand" href="/">📊 Clementine</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="/mood">Mood Data</a>
+                        <a class="nav-link" href="/">Обзор</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/time">Time Data</a>
+                        <a class="nav-link" href="/mood">Настроение</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/daily">Daily Data</a>
+                        <a class="nav-link" href="/time">Время</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/daily">Ежедневные данные</a>
                     </li>
                 </ul>
             </div>

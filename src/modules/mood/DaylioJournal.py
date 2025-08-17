@@ -24,7 +24,7 @@ class DaylioJournal:
         self.ordered_moods = ordered_moods
         self.scale = scale
         self.raw_data = pd.read_csv(path_to_csv, index_col=False)
-        self.data, self.activities = self.clean_df()
+        self.data = self.clean_df()
 
     def clean_df(self):
         df = self.raw_data
@@ -32,17 +32,14 @@ class DaylioJournal:
         ordered_moods = self.ordered_moods
         scale = self.scale
 
-        df['mood_num'] = df['mood'].replace(
-            ordered_moods, range(len(ordered_moods)))
+        df['mood_num'] = df['mood'].replace(ordered_moods, range(len(ordered_moods)))
 
         df.full_date = pd.to_datetime(df.full_date)
-        df_with_one_hot_encoding, all_activities = self.convert_activities_to_categorical(
-            df)
-        df_with_mood_scores = self.mood_to_score(df_with_one_hot_encoding)
 
+        df_with_mood_scores = self.mood_to_score(df)
         df_with_mood_scores = df_with_mood_scores.set_index('full_date')
 
-        return (df_with_mood_scores, all_activities)
+        return df_with_mood_scores
 
     def gen_hist(self):
         moods = self.data[['mood']]
@@ -103,101 +100,6 @@ class DaylioJournal:
         plt.axis('off')
 
         return (plt)
-
-    def gen_wordcloud_per_mood(self):
-        all_words = ''
-        stopwords = set(STOPWORDS)
-
-        words_by_mood = {}
-
-        for mood in self.ordered_moods:
-            words_by_mood[mood] = ''
-
-        for index, row in self.data.iterrows():
-            mood = row[['mood']].mood
-            note = row[['note']].note
-            if type(note) == str:
-                clean_note = note.translate(str.maketrans(
-                    '', '', string.punctuation)).lower()
-            words_by_mood[mood] += clean_note
-
-        wordcloud_dict = {}
-
-        for mood, words in words_by_mood.items():
-            wordcloud = WordCloud(width=800,
-                                  height=800,
-                                  background_color='white',
-                                  stopwords=stopwords,
-                                  min_font_size=10,
-                                  max_words=100).generate(words)
-            plt.figure(figsize=(8, 8), facecolor=None)
-            plt.imshow(wordcloud)
-            plt.axis("off")
-            plt.tight_layout(pad=0)
-            plt.savefig(mood + ".png")
-            wordcloud_dict[mood] = plt
-
-        return (wordcloud_dict)
-
-    def gen_entries_over_time_hist(self):
-        df = self.data
-        df.full_date = pd.to_datetime(
-            df.full_date).dt.to_period('M').dt.to_timestamp()
-        earliest_entry = min(df.full_date)
-        start_year = earliest_entry.year
-        start_month = earliest_entry.month
-
-        latest_entry = max(df.full_date)
-        end_year = latest_entry.year
-        end_month = latest_entry.month
-
-        all_months = [
-            date(m // 12, m % 12 + 1, 1)
-            for m in range(start_year * 12 + start_month - 1, end_year * 12 + end_month)
-        ]
-
-        num_entries = []
-
-        for month in all_months:
-            num_entries.append(len(df[df.full_date == month]))
-
-        ax = plt.subplot(111)
-        ax.bar(all_months, num_entries, width=25, color="darkorange")
-        ax.xaxis_date()
-        plt.title("# journal entries written, by month")
-
-        return (plt)
-
-    def convert_activities_to_categorical(self, df):
-        all_activities = []
-
-        for index, row in df.iterrows():
-            if type(row['activities']) == str:
-                activities_list = row['activities'].split(" | ")
-                for activity in activities_list:
-                    if activity not in all_activities:
-                        all_activities.append(activity)
-
-        categorical_activity_matrix = []
-
-        for index, row in df.iterrows():
-            activity_list_binary = []
-            if type(row['activities']) != str:
-                activity_list_binary = [False] * len(all_activities)
-            else:
-                for activity in all_activities:
-                    if activity in row['activities']:
-                        activity_list_binary.append(True)
-                    else:
-                        activity_list_binary.append(False)
-            categorical_activity_matrix.append(activity_list_binary)
-
-        categorical_df = pd.DataFrame(
-            categorical_activity_matrix, columns=all_activities)
-
-        full_df = pd.concat([df, categorical_df], axis=1)
-
-        return (full_df, all_activities)
 
     def mood_to_score(self, df):
         original_metric = {}

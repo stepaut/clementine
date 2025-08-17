@@ -1,130 +1,109 @@
 {% extends "base.html" %}
 
-{% block title %}Загрузка данных{% endblock %}
+{% block title %}Обзор данных{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Data Upload</h1>
+    <h1>Обзор данных</h1>
+    
+    {% if summary.available_years %}
+        <div class="alert alert-success">
+            <h4>✅ Данные успешно загружены!</h4>
+            <p>Найдено данных за {{ summary.available_years|length }} лет: {{ summary.available_years|join(', ') }}</p>
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <h4>⚠️ Данные не найдены</h4>
+            <p>Проверьте путь к папке "Статистика" в файле config.py</p>
+        </div>
+    {% endif %}
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <h3>Mood Data</h3>
-            <form action="{{ url_for('upload_files') }}" method="post" enctype="multipart/form-data" class="upload-form">
-                <div class="form-group">
-                    <label for="mood_file">Upload Daylio Export (.csv):</label>
-                    <input type="file" class="form-control" id="mood_file" name="mood_file" accept=".csv">
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">📊 Данные настроения</h5>
+                    {% if summary.mood_years %}
+                        <p class="card-text">
+                            <strong>Доступно лет:</strong> {{ summary.mood_years|length }}<br>
+                            <strong>Годы:</strong> {{ summary.mood_years|join(', ') }}<br>
+                            <strong>Записей:</strong> {{ summary.total_mood_records }}
+                        </p>
+                        <a href="/mood" class="btn btn-primary">Просмотреть анализ</a>
+                    {% else %}
+                        <p class="card-text text-muted">Данные настроения не найдены</p>
+                        <button class="btn btn-secondary" disabled>Нет данных</button>
+                    {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">Upload Mood Data</button>
-            </form>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">⏰ Временные данные</h5>
+                    {% if summary.time_years %}
+                        <p class="card-text">
+                            <strong>Доступно лет:</strong> {{ summary.time_years|length }}<br>
+                            <strong>Годы:</strong> {{ summary.time_years|join(', ') }}<br>
+                            <strong>Записей:</strong> {{ summary.total_time_records }}
+                        </p>
+                        <a href="/time" class="btn btn-primary">Просмотреть анализ</a>
+                    {% else %}
+                        <p class="card-text text-muted">Данные времени не найдены</p>
+                        <button class="btn btn-secondary" disabled>Нет данных</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">📅 Ежедневные данные</h5>
+                    {% if summary.daily_years %}
+                        <p class="card-text">
+                            <strong>Доступно лет:</strong> {{ summary.daily_years|length }}<br>
+                            <strong>Годы:</strong> {{ summary.daily_years|join(', ') }}<br>
+                            <strong>Записей:</strong> {{ summary.total_daily_records }}
+                        </p>
+                        <a href="/daily" class="btn btn-primary">Просмотреть анализ</a>
+                    {% else %}
+                        <p class="card-text text-muted">Ежедневные данные не найдены</p>
+                        <button class="btn btn-secondary" disabled>Нет данных</button>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <h3>Time Tracking Data</h3>
-            <form action="{{ url_for('upload_files') }}" method="post" enctype="multipart/form-data" class="upload-form">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="time_file">Time Data File (.csv):</label>
-                            <input type="file" class="form-control" id="time_file" name="time_file" accept=".csv">
-                        </div>
+    {% if summary.available_years %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">📋 Структура данных</h5>
+                        <p class="card-text">Данные загружаются из папки "Статистика" со следующей структурой:</p>
+                        <ul>
+                            <li><code>Статистика/</code></li>
+                            <li><code>&nbsp;&nbsp;colors.csv</code> (общий файл с цветами для всех лет)</li>
+                            {% for year in summary.available_years %}
+                                <li><code>&nbsp;&nbsp;{{ year }}/</code></li>
+                                {% if year in summary.mood_years %}
+                                    <li><code>&nbsp;&nbsp;&nbsp;&nbsp;mood_{{ year }}.csv</code> ✅</li>
+                                {% endif %}
+                                {% if year in summary.time_years %}
+                                    <li><code>&nbsp;&nbsp;&nbsp;&nbsp;time_{{ year }}.csv</code> ✅</li>
+                                {% endif %}
+                                {% if year in summary.daily_years %}
+                                    <li><code>&nbsp;&nbsp;&nbsp;&nbsp;data_{{ year }}.csv</code> ✅</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="color_file">Color Dictionary (.csv):</label>
-                            <input type="file" class="form-control" id="color_file" name="color_file" accept=".csv">
-                        </div>
-                    </div>
                 </div>
-                <small class="text-muted d-block mb-3">Note: Both Time Data and Color Dictionary files must be uploaded together.</small>
-                <button type="submit" class="btn btn-primary">Upload Time Data</button>
-            </form>
+            </div>
         </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-body">
-            <h3>Daily Data</h3>
-            <form action="{{ url_for('upload_files') }}" method="post" enctype="multipart/form-data" class="upload-form">
-                <div class="form-group">
-                    <label for="daily_file">Daily Data File (.csv):</label>
-                    <input type="file" class="form-control" id="daily_file" name="daily_file" accept=".csv">
-                </div>
-                <button type="submit" class="btn btn-primary mt-3">Upload Daily Data</button>
-            </form>
-        </div>
-    </div>
+    {% endif %}
 </div>
-
-<div id="analysis-results" class="row mt-4" style="display: none;">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Данные настроения</h5>
-                <p class="card-text">Анализ вашего настроения и эмоций.</p>
-                <a href="/mood" class="btn btn-primary">Просмотреть анализ</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Временные данные</h5>
-                <p class="card-text">Анализ распределения времени.</p>
-                <a href="/time" class="btn btn-primary">Просмотреть анализ</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Ежедневные данные</h5>
-                <p class="card-text">Анализ ежедневной активности.</p>
-                <a href="/daily" class="btn btn-primary">Просмотреть анализ</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-document.querySelectorAll('.upload-form').forEach(form => {
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const timeFile = this.querySelector('[name="time_file"]');
-        const colorFile = this.querySelector('[name="color_file"]');
-        
-        // Validate time data uploads
-        if (timeFile && colorFile) {
-            if ((timeFile.files.length > 0 && colorFile.files.length === 0) || 
-                (timeFile.files.length === 0 && colorFile.files.length > 0)) {
-                alert('Time Data and Color Dictionary files must be uploaded together.');
-                return;
-            }
-        }
-        
-        // Submit form data
-        const formData = new FormData(this);
-        fetch('{{ url_for("upload_files") }}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                }
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Error uploading file: ' + error.message);
-        });
-    });
-});
-</script>
 {% endblock %} 
