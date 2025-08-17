@@ -6,68 +6,87 @@
 <div class="container mt-4">
     <h1>Time Analysis Dashboard</h1>
     
+    <!-- Year Selection -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Выберите год</h5>
+                    <div class="year-sliders">
+                        {% for year in years %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input year-radio" type="radio" name="year" id="year{{ year }}" value="{{ year }}" {% if loop.last %}checked{% endif %}>
+                            <label class="form-check-label" for="year{{ year }}">{{ year }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="row mt-4">
         <div class="col-md-12">
             <a href="/time/report" class="btn btn-primary mb-3">Скачать HTML-отчет</a>
         </div>
     </div>
     
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <h3>Time Distribution (Pie Chart)</h3>
-            <img src="data:image/png;base64,{{ pie_img }}" class="img-fluid" alt="Time Distribution Pie Chart">
+    <!-- Plots Container -->
+    <div class="plots-container">
+        {% for year in years %}
+        <div class="year-plots" id="plots{{ year }}" {% if not loop.first %}style="display: none;"{% endif %}>
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h3>Распределение времени по дням</h3>
+                    <img src="data:image/png;base64,{{ year_plots[year]['daily'] }}" class="img-fluid" alt="Time Distribution Daily Chart">
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <h3>Тепловая карта активности по неделям</h3>
+                    <img src="data:image/png;base64,{{ year_plots[year]['heatmap'] }}" class="img-fluid" alt="Activity Heatmap">
+                </div>
+            </div>
         </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <h3>Activity Duration (Bar Chart)</h3>
-            <img src="data:image/png;base64,{{ bar_img }}" class="img-fluid" alt="Activity Duration Bar Chart">
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <h3>Activity Heatmap</h3>
-            <img src="data:image/png;base64,{{ heatmap_img }}" class="img-fluid" alt="Activity Heatmap">
-        </div>
+        {% endfor %}
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.year-radio').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Hide all year plots
+        document.querySelectorAll('.year-plots').forEach(plot => {
+            plot.style.display = 'none';
+        });
+        
+        // Show selected year plots
+        const selectedYear = this.value;
+        document.getElementById(`plots${selectedYear}`).style.display = 'block';
+    });
+});
+</script>
+
+<style>
+.year-sliders {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.form-check-inline {
+    margin-right: 1rem;
+}
+
+.year-plots {
+    transition: opacity 0.3s ease-in-out;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Загрузка временных данных
-    fetch('/api/time')
-        .then(response => response.json())
-        .then(data => {
-            // График распределения времени
-            const distributionLayout = {
-                title: 'Распределение времени по категориям',
-                showlegend: true
-            };
-            Plotly.newPlot('time-distribution-chart', [{
-                labels: data.categories,
-                values: data.durations,
-                type: 'pie'
-            }], distributionLayout);
-
-            // График ежедневной активности
-            const activityLayout = {
-                title: 'Ежедневная активность',
-                xaxis: { title: 'Время суток' },
-                yaxis: { title: 'Активность' }
-            };
-            Plotly.newPlot('daily-activity-chart', [{
-                x: data.hours,
-                y: data.activity,
-                type: 'bar'
-            }], activityLayout);
-
-            // Статистика
-            document.getElementById('total-time').textContent = data.stats.total_time;
-            document.getElementById('avg-time').textContent = data.stats.avg_time;
-            document.getElementById('peak-hours').textContent = data.stats.peak_hours;
-        });
+    // Дополнительный JavaScript код для интерактивности (если потребуется)
 </script>
 {% endblock %} 

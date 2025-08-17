@@ -65,7 +65,13 @@ class TimeData:
                 dfy["Work"].iloc[row.Start.week - 1] += row.Total
                 continue
 
-            dfy[row.Activity].iloc[row.Start.week - 1] += row.Total
+            # Проверяем, существует ли столбец для данной активности
+            if row.Activity in dfy.columns:
+                dfy[row.Activity].iloc[row.Start.week - 1] += row.Total
+            else:
+                # Если столбца нет, добавляем его
+                dfy[row.Activity] = 0
+                dfy[row.Activity].iloc[row.Start.week - 1] += row.Total
 
         # удаляем столбцы, в которых все нули
         dfy = dfy.loc[:, (dfy != 0).any(axis=0)]
@@ -98,7 +104,13 @@ class TimeData:
                 dfy["Work"].iloc[row.Start.month - 1] += row.Total
                 continue
 
-            dfy[row.Activity].iloc[row.Start.month - 1] += row.Total
+            # Проверяем, существует ли столбец для данной активности
+            if row.Activity in dfy.columns:
+                dfy[row.Activity].iloc[row.Start.month - 1] += row.Total
+            else:
+                # Если столбца нет, добавляем его
+                dfy[row.Activity] = 0
+                dfy[row.Activity].iloc[row.Start.month - 1] += row.Total
 
         # удаляем столбцы, в которых все нули
         dfy = dfy.loc[:, (dfy != 0).any(axis=0)]
@@ -218,6 +230,11 @@ class TimeData:
             new_colors = plt.cm.tab20(np.linspace(0, 1, len(unknown_activities)))
             for activity, color in zip(unknown_activities, new_colors):
                 activity_colors[activity] = matplotlib.colors.rgb2hex(color)
+        
+        # Убеждаемся, что все активности имеют цвета
+        for activity in unique_activities:
+            if activity not in activity_colors:
+                activity_colors[activity] = unfinded_color
 
         # Для каждой активности создаем прямоугольник
         for idx, row in df_filtered.iterrows():

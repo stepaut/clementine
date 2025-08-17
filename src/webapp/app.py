@@ -90,17 +90,32 @@ def time_dashboard():
         return render_template('no_data.html', data_type="времени")
     
     try:
-        # Получаем последние доступные данные времени
-        time_data = data_manager.get_time_data()
+        # Получаем все доступные годы для временных данных
+        time_years = sorted(data_manager.time_data.keys())
         
-        daily = time_data.plot_daily()
-        plot1 = time_data.draw_plot("week", False)
+        # Генерируем графики для каждого года
+        year_plots = {}
+        for year in time_years:
+            try:
+                time_data = data_manager.get_time_data(year)
+                daily = time_data.plot_daily()
+                plot1 = time_data.draw_plot("week", False)
 
-        return render_template('time.html',
-                               pie_img=get_plot_as_base64(daily),
-                               bar_img=get_plot_as_base64(daily),
-                               heatmap_img=get_plot_as_base64(plot1))
+                year_plots[year] = {
+                    'daily': get_plot_as_base64(daily),
+                    'heatmap': get_plot_as_base64(plot1),
+                }
+            except Exception as e:
+                print(f"Ошибка при генерации графиков для {year} года: {str(e)}")
+                # Продолжаем с другими годами, если один не удался
+                continue
+        
+        if not year_plots:
+            return render_template('no_data.html', data_type="времени (ошибка генерации графиков)")
+        
+        return render_template('time.html', year_plots=year_plots, years=list(year_plots.keys()))
     except Exception as e:
+        print(f"Ошибка при генерации графиков времени: {str(e)}")
         return f"Ошибка при генерации графиков времени: {str(e)}", 500
 
 @app.route('/daily')
