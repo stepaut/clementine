@@ -125,20 +125,38 @@ def daily_dashboard():
         return render_template('no_data.html', data_type="ежедневных данных")
     
     try:
-        # Получаем последние доступные ежедневные данные
-        daily_data = data_manager.get_daily_data()
+        # Получаем все доступные годы для ежедневных данных
+        daily_years = sorted(data_manager.daily_data.keys())
         
-        # Генерируем все графики из DailyData
-        figs = daily_data.plot_all()
+        # Генерируем графики для каждого года
+        year_plots = {}
+        for year in daily_years:
+            try:
+                daily_data = data_manager.get_daily_data(year)
+                
+                # Генерируем все графики из DailyData
+                figs = daily_data.plot_all()
+                
+                # Конвертируем все фигуры в base64 изображения
+                images = []
+                for fig in figs:
+                    img = get_plot_as_base64(fig)
+                    images.append(img)
+                
+                year_plots[year] = {
+                    'images': images,
+                }
+            except Exception as e:
+                print(f"Ошибка при генерации графиков для {year} года: {str(e)}")
+                # Продолжаем с другими годами, если один не удался
+                continue
         
-        # Конвертируем все фигуры в base64 изображения
-        images = []
-        for fig in figs:
-            img = get_plot_as_base64(fig)
-            images.append(img)
+        if not year_plots:
+            return render_template('no_data.html', data_type="ежедневных данных (ошибка генерации графиков)")
         
-        return render_template('daily.html', plot_images=images)
+        return render_template('daily.html', year_plots=year_plots, years=list(year_plots.keys()))
     except Exception as e:
+        print(f"Ошибка при генерации графиков ежедневных данных: {str(e)}")
         return f"Ошибка при генерации графиков ежедневных данных: {str(e)}", 500
 
 @app.route('/time/report')
