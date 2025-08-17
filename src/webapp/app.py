@@ -61,17 +61,26 @@ def mood_dashboard():
         # Генерируем графики для каждого года
         year_plots = {}
         for year in mood_years:
-            mood_data = data_manager.get_mood_data(year)
-            plot = mood_data.gen_plot(year=year)
-            trend_line = mood_data.gen_mood_trend_line(year=year)
+            try:
+                mood_data = data_manager.get_mood_data(year)
+                plot = mood_data.gen_plot(year=year)
+                trend_line = mood_data.gen_mood_trend_line(year=year)
 
-            year_plots[year] = {
-                'plot': get_plot_as_base64(plot),
-                'trend_line': get_plot_as_base64(trend_line),
-            }
+                year_plots[year] = {
+                    'plot': get_plot_as_base64(plot),
+                    'trend_line': get_plot_as_base64(trend_line),
+                }
+            except Exception as e:
+                print(f"Ошибка при генерации графиков для {year} года: {str(e)}")
+                # Продолжаем с другими годами, если один не удался
+                continue
         
-        return render_template('mood.html', year_plots=year_plots, years=mood_years)
+        if not year_plots:
+            return render_template('no_data.html', data_type="настроения (ошибка генерации графиков)")
+        
+        return render_template('mood.html', year_plots=year_plots, years=list(year_plots.keys()))
     except Exception as e:
+        print(f"Ошибка при генерации графиков настроения: {str(e)}")
         return f"Ошибка при генерации графиков настроения: {str(e)}", 500
 
 @app.route('/time')

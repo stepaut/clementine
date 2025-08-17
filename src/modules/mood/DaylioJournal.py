@@ -27,15 +27,28 @@ class DaylioJournal:
         self.data = self.clean_df()
 
     def clean_df(self):
-        df = self.raw_data
+        df = self.raw_data.copy()
         df = df.iloc[::-1]
         ordered_moods = self.ordered_moods
         scale = self.scale
 
-        df['mood_num'] = df['mood'].replace(ordered_moods, range(len(ordered_moods)))
+        # Проверяем и очищаем данные настроения
+        df['mood'] = df['mood'].astype(str).str.strip()
 
-        df.full_date = pd.to_datetime(df.full_date)
+        # Заменяем настроения на числовые значения (исправляем предупреждение pandas)
+        mood_to_num = {mood: i for i, mood in enumerate(ordered_moods)}
+        df['mood_num'] = df['mood'].map(mood_to_num).astype(int)
 
+        # Преобразуем дату в datetime с явным указанием формата
+        try:
+            df['full_date'] = pd.to_datetime(df['full_date'], format='%Y-%m-%d')
+        except:
+            try:
+                df['full_date'] = pd.to_datetime(df['full_date'], format='%d.%m.%Y')
+            except:
+                df['full_date'] = pd.to_datetime(df['full_date'])
+
+        # Обрабатываем данные настроения
         df_with_mood_scores = self.mood_to_score(df)
         df_with_mood_scores = df_with_mood_scores.set_index('full_date')
 
@@ -54,9 +67,20 @@ class DaylioJournal:
         colors = ["red", "orange", "yellow", "lawngreen", "green"]
         palette = mpl.colors.LinearSegmentedColormap.from_list(
             "palette", colors, len(colors))
-        df = self.data
+        df = self.data.copy()
+        
+        # Убеждаемся, что mood_num является числовым
+        df['mood_num'] = pd.to_numeric(df['mood_num'], errors='coerce')
+        
+        # Фильтруем данные по году
+        df_year = df[df.index.year == year]
+        
+        # Проверяем, что у нас есть данные для отображения
+        if df_year.empty:
+            raise ValueError(f"Нет данных для отображения за {year} год")
+        
         fig = plt.figure(figsize=(20, 10))
-        calmap.yearplot(df['mood_num'], year=year, cmap=palette, daylabels='MTWTFSS', dayticks=[0, 2, 4, 6],
+        calmap.yearplot(df_year['mood_num'], year=year, cmap=palette, daylabels='MTWTFSS', dayticks=[0, 2, 4, 6],
                         linewidth=2.5)
         return fig
 
@@ -127,20 +151,35 @@ class DaylioJournal:
         Создает линейный график тренда настроения с использованием скользящего среднего.
         
         Входные параметры:
-            window_size: int, размер окна для скользящего среднего (по умолчанию: 7 дней)
+            window_size: int, размер окна для скользящего среднего (по умолчанию: 30 дней)
             year: int, год для отображения данных. Если None, отображаются все данные
         Выходные данные:
             PyPlot figure
         '''
         df = self.data.copy()
 
+        # Убеждаемся, что mood_score является числовым
+        df['mood_score'] = pd.to_numeric(df['mood_score'], errors='coerce')
+        
+        # Удаляем строки с NaN значениями
+        df = df.dropna(subset=['mood_score'])
+
         # Фильтруем данные по году, если указан
         if year is not None:
             df = df[df.index.year == year]
 
+        # Проверяем, что у нас есть данные для отображения
+        if df.empty:
+            raise ValueError(f"Нет данных для отображения за {year} год")
+
+        # Сортируем данные по дате
+        df = df.sort_index()
+
+        # Вычисляем скользящее среднее
         df['mood_score_ma'] = df['mood_score'].rolling(
             window=window_size, min_periods=1).mean()
 
+        # Создаем новый график
         plt.figure(figsize=(15, 6))
 
         # Определяем границы для цветовых зон
@@ -166,8 +205,8 @@ class DaylioJournal:
             plt.fill_between(df.index, min_val, max_val,
                              color=colors[mood], alpha=0.2)
 
-        # Рисуем линию тренда
-        plt.plot(df.index, df['mood_score_ma'], linewidth=2, color='blue')
+        # Рисуем линию тренда (только одну)
+        plt.plot(df.index, df['mood_score_ma'], linewidth=2, color='blue', label='Тренд настроения')
 
         # Формируем заголовок в зависимости от того, указан ли год
         if year is not None:
@@ -187,9 +226,15 @@ class DaylioJournal:
         from matplotlib.dates import DateFormatter, MonthLocator
         import locale
 
-        locale.setlocale(locale.LC_TIME, 'en_US.UTF-8')
+        try:
+            locale.setlocale(locale.LC_TIME, 'en_US.UTF-8')
+        except:
+            try:
+                locale.setlocale(locale.LC_TIME, 'en_US')
+            except:
+                pass  # Используем системную локаль по умолчанию
+                
         # Создаем форматтер для дат в формате "месяц год"
-        # %b для сокращенного названия месяца, %y для двухзначного года
         date_format = DateFormatter('%b %y')
 
         ax = plt.gca()
@@ -205,6 +250,7 @@ class DaylioJournal:
         from matplotlib.patches import Patch
         legend_elements = [Patch(facecolor=colors[mood], alpha=0.2, label=mood)
                            for mood in self.ordered_moods]
+        legend_elements.append(plt.Line2D([0], [0], color='blue', linewidth=2, label='Тренд настроения'))
         plt.legend(handles=legend_elements, loc='upper right')
 
         # Настраиваем отступы для предотвращения обрезания подписей
