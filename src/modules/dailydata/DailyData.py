@@ -34,10 +34,25 @@ class DailyData:
     def __init__(self,
                  path_to_csv):
         df = pd.read_csv(path_to_csv)
-        try:
-            df['Date'] = pd.to_datetime(df['Date'], format="%d.%m.%y")
-        except:
-            df['Date'] = pd.to_datetime(df['Date'], format="%m.%d.%y")
+        # Робастный парсинг дат: поддержка смешанных форматов
+        date_series = df['Date'].astype(str).str.strip()
+        # Первая попытка: mixed + dayfirst=True
+        parsed = pd.to_datetime(date_series, format='mixed', dayfirst=True, errors='coerce')
+        # Вторая попытка для неразобранных: mixed + dayfirst=False
+        mask_na = parsed.isna()
+        if mask_na.any():
+            parsed2 = pd.to_datetime(date_series[mask_na], format='mixed', dayfirst=False, errors='coerce')
+            parsed.loc[mask_na] = parsed2
+        # Третья попытка: общий парсер без формата (на случай ISO и пр.)
+        mask_na = parsed.isna()
+        if mask_na.any():
+            parsed3 = pd.to_datetime(date_series[mask_na], errors='coerce')
+            parsed.loc[mask_na] = parsed3
+        # Если остались некорректные даты — бросаем осмысленную ошибку
+        if parsed.isna().any():
+            bad_examples = date_series[parsed.isna()].unique()[:5]
+            raise ValueError(f"Некорректные значения дат: {bad_examples}")
+        df['Date'] = parsed
         df = df.set_index('Date')
         self.df = df
 

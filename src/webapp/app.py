@@ -28,6 +28,11 @@ print("Загружаем данные из папки статистики...")
 data_manager = DataManager(STATISTICS_FOLDER, COLOR_FILE)
 print("Загрузка данных завершена!")
 
+# Генерируем файлы data2_YYYY.csv если они не существуют
+print("Проверяем и генерируем файлы data2_YYYY.csv...")
+data_manager.generate_data2_files()
+print("Генерация файлов data2 завершена!")
+
 def format_date(date):
     """Format date for JSON serialization"""
     if isinstance(date, pd.Timestamp):
