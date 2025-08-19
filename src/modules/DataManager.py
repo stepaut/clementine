@@ -1,7 +1,6 @@
 import os
 import pandas as pd
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import sys
 
 # Добавляем путь к родительской директории для импорта модулей
@@ -12,16 +11,14 @@ from modules.timedata.TimeData import TimeData
 from modules.dailydata.DailyData import DailyData
 
 class DataManager:
-    def __init__(self, statistics_folder: str, color_file: str):
+    def __init__(self, statistics_folder: str):
         """
         Инициализация менеджера данных
         
         Args:
             statistics_folder: Путь к папке "Статистика"
-            color_file: Путь к файлу с цветами для активностей
         """
         self.statistics_folder = statistics_folder
-        self.color_file = color_file
         self.mood_data = {}
         self.time_data = {}
         self.daily_data = {}
@@ -34,11 +31,6 @@ class DataManager:
         """Загружает все доступные данные из папки статистики"""
         if not os.path.exists(self.statistics_folder):
             print(f"Папка {self.statistics_folder} не найдена!")
-            return
-        
-        # Проверяем существование файла с цветами
-        if not os.path.exists(self.color_file):
-            print(f"Файл с цветами {self.color_file} не найден!")
             return
         
         # Получаем список папок с годами
@@ -71,7 +63,7 @@ class DataManager:
         
         if os.path.exists(time_file):
             try:
-                self.time_data[year] = TimeData(time_file, self.color_file)
+                self.time_data[year] = TimeData(time_file)
                 print(f"Загружены данные времени за {year} год")
             except Exception as e:
                 print(f"Ошибка загрузки данных времени за {year} год: {e}")

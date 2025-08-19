@@ -2,9 +2,6 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, R
 import sys
 import os
 import pandas as pd
-import numpy as np
-from datetime import datetime
-import tempfile
 import io
 import base64
 import matplotlib
@@ -19,13 +16,13 @@ from modules.DataManager import DataManager
 
 # Импортируем конфигурацию
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from config import STATISTICS_FOLDER, COLOR_FILE
+from config import STATISTICS_FOLDER
 
 app = Flask(__name__)
 
 # Инициализируем менеджер данных при запуске приложения
 print("Загружаем данные из папки статистики...")
-data_manager = DataManager(STATISTICS_FOLDER, COLOR_FILE)
+data_manager = DataManager(STATISTICS_FOLDER)
 print("Загрузка данных завершена!")
 
 # Генерируем файлы data2_YYYY.csv если они не существуют

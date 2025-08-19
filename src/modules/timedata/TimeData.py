@@ -2,14 +2,10 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.collections import PolyCollection
 import altair as alt
 import calendar
-import matplotlib.colors
 
-unfinded_color = "lightgray"
-
+from modules.ActivityInfo import ActivityInfo
 
 def get_fake_time(x: str, morning: bool):
     dt = datetime.strptime(x, u'%Y-%m-%d %H:%M:%S')
@@ -21,10 +17,7 @@ def get_fake_time(x: str, morning: bool):
 
 class TimeData:
     def __init__(self,
-                 path_to_csv: str,
-                 path_color_dict: str):
-        cdf = pd.read_csv(path_color_dict)
-        self.color_dict = dict(cdf.values)
+                 path_to_csv: str):
         df = pd.read_csv(path_to_csv, on_bad_lines="warn", sep=",")
         self.activities = df.Activity.unique()
 
@@ -44,9 +37,11 @@ class TimeData:
         ).apply(
             lambda x: 'PetProjects' if 'PetProjects:' in x else x
         ).replace(':', '', regex=True)
-        self.df_groupped = df_groupped
+        self.df_groupped = df
 
         self.year = df.Start.min().year
+
+        self.activityInfo = ActivityInfo()
 
 
     def get_by_week(self, work: bool):
@@ -80,10 +75,7 @@ class TimeData:
         colors = []
 
         for c in dfy.columns:
-            if c in self.color_dict:
-                colors.append(self.color_dict[c])
-            else:
-                colors.append(unfinded_color)
+            colors.append(self.activityInfo.get_activity_color(c))
 
         return dfy, colors
 
@@ -119,10 +111,7 @@ class TimeData:
         colors = []
 
         for c in dfy.columns:
-            if c in self.color_dict:
-                colors.append(self.color_dict[c])
-            else:
-                colors.append(unfinded_color)
+            colors.append(self.activityInfo.get_activity_color(c))
 
         return dfy, colors
 
@@ -156,7 +145,7 @@ class TimeData:
         )
 
 
-    def plot_daily(self, level=None, month=None, week=None, custom_colors=None):
+    def plot_daily(self, level=None, month=None, week=None):
         """
         Создает визуализацию активностей по дням.
         
@@ -174,8 +163,6 @@ class TimeData:
             Номер месяца (1-12) для фильтрации данных. Используется при level='month'
         week : int, optional
             Номер недели (1-53) для фильтрации данных. Используется при level='week'
-        custom_colors : dict, optional
-            Пользовательский словарь цветов для активностей
         """
         # Проверяем наличие необходимых колонок
         required_columns = {'Start', 'End', 'Activity'}
@@ -221,21 +208,6 @@ class TimeData:
         # Создаем словарь для хранения уникальных активностей и их цветов
         unique_activities = df_filtered['Activity'].unique()
 
-        # Используем предопределенные цвета или создаем новые для неизвестных активностей
-        activity_colors = custom_colors if custom_colors else self.color_dict.copy()
-
-        # Для активностей, которых нет в словаре, генерируем новые цвета
-        unknown_activities = set(unique_activities) - set(activity_colors.keys())
-        if unknown_activities:
-            new_colors = plt.cm.tab20(np.linspace(0, 1, len(unknown_activities)))
-            for activity, color in zip(unknown_activities, new_colors):
-                activity_colors[activity] = matplotlib.colors.rgb2hex(color)
-        
-        # Убеждаемся, что все активности имеют цвета
-        for activity in unique_activities:
-            if activity not in activity_colors:
-                activity_colors[activity] = unfinded_color
-
         # Для каждой активности создаем прямоугольник
         for idx, row in df_filtered.iterrows():
             start_date = row['Start'].date()
@@ -247,21 +219,22 @@ class TimeData:
                 x_pos = date_to_num[start_date]
                 start_time = row['Start'].hour + row['Start'].minute / 60
                 ax.bar(x_pos, 24 - start_time, bottom=start_time, width=1.0,
-                    color=activity_colors[row['Activity']],
+                    color=self.activityInfo.get_activity_color(row['Activity']),
                     label=row['Activity'] if idx == 0 else "", alpha=0.7)
 
                 # Вторая часть активности (после полуночи)
                 x_pos = date_to_num[end_date]
                 end_time = row['End'].hour + row['End'].minute / 60
-                ax.bar(x_pos, end_time, bottom=0, width=1.0,
-                    color=activity_colors[row['Activity']], alpha=0.7)
+                ax.bar(x_pos, end_time, bottom=0, width=1.0, 
+                       color=self.activityInfo.get_activity_color(row['Activity']), 
+                       alpha=0.7)
             else:
                 # Обычная активность в пределах одного дня
                 x_pos = date_to_num[start_date]
                 start_time = row['Start'].hour + row['Start'].minute / 60
                 end_time = row['End'].hour + row['End'].minute / 60
                 ax.bar(x_pos, end_time - start_time, bottom=start_time, width=1.0,
-                    color=activity_colors[row['Activity']],
+                    color=self.activityInfo.get_activity_color(row['Activity']),
                     label=row['Activity'] if idx == 0 else "", alpha=0.7)
 
         # Настраиваем оси
@@ -289,7 +262,7 @@ class TimeData:
         handles, labels = [], []
         for activity in unique_activities:
             handle = plt.Rectangle(
-                (0, 0), 1, 1, color=activity_colors[activity], alpha=0.7)
+                (0, 0), 1, 1, color=self.activityInfo.get_activity_color(activity), alpha=0.7)
             handles.append(handle)
             labels.append(activity)
         plt.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc='upper left')
